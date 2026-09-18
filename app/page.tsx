@@ -123,6 +123,7 @@ export default function Home() {
 
             {/* 👇 NOTICE: 'multiple', 'webkitdirectory', and 'directory' added! */}
             <label className="w-full p-8 border-2 border-dashed border-gray-600 rounded-2xl flex flex-col items-center cursor-pointer hover:border-purple-500 transition-colors mb-6">
+              {/* @ts-ignore */}
               <input
                 type="file"
                 accept="image/*,video/*"
