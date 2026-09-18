@@ -24,8 +24,11 @@ export async function POST(request: Request) {
     }
 
     const album = createAlbumRecord(title, pin);
-
-    const albumUrl = `http://localhost:3000/view/${album.id}`;
+    const requestUrl = new URL(request.url);
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      `${requestUrl.protocol}//${requestUrl.host}`;
+    const albumUrl = `${baseUrl.replace(/\/$/, "")}/view/${album.id}`;
     const qrCode = await QRCode.toDataURL(albumUrl);
 
     return Response.json({
