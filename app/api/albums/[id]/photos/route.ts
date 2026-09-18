@@ -1,20 +1,4 @@
-type AlbumRecord = {
-  id: string;
-  title: string;
-  pin: string | null;
-  createdAt: string;
-  photos: PhotoRecord[];
-};
-
-type PhotoRecord = {
-  id: string;
-  imageUrl: string;
-  videoUrl: string | null;
-  albumId: string;
-  createdAt: string;
-};
-
-const albums = new Map<string, AlbumRecord>();
+import { addPhotoToAlbum, albums, type PhotoRecord } from "@/lib/album-store";
 
 export async function POST(
   request: Request,
@@ -47,13 +31,13 @@ export async function POST(
     createdAt: new Date().toISOString(),
   };
 
-  album.photos.push(photo);
+  const saved = addPhotoToAlbum(id, photo);
+
+  if (!saved) {
+    return Response.json({ error: "Album not found" }, { status: 404 });
+  }
 
   return Response.json({
-    photo,
+    photo: saved,
   });
-}
-
-export function registerAlbum(album: AlbumRecord) {
-  albums.set(album.id, album);
 }

@@ -1,22 +1,5 @@
 import QRCode from "qrcode";
-
-const albums = new Map<string, AlbumRecord>();
-
-type AlbumRecord = {
-  id: string;
-  title: string;
-  pin: string | null;
-  createdAt: string;
-  photos: PhotoRecord[];
-};
-
-type PhotoRecord = {
-  id: string;
-  imageUrl: string;
-  videoUrl: string | null;
-  albumId: string;
-  createdAt: string;
-};
+import { albums, createAlbumRecord, type AlbumRecord } from "@/lib/album-store";
 
 function buildAlbumPayload(album: AlbumRecord) {
   return {
@@ -38,18 +21,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const id = crypto.randomUUID();
-    const album: AlbumRecord = {
-      id,
-      title,
-      pin,
-      createdAt: new Date().toISOString(),
-      photos: [],
-    };
+    const album = createAlbumRecord(title, pin);
 
-    albums.set(id, album);
-
-    const albumUrl = `http://localhost:3000/view/${id}`;
+    const albumUrl = `http://localhost:3000/view/${album.id}`;
     const qrCode = await QRCode.toDataURL(albumUrl);
 
     return Response.json({
