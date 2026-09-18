@@ -14,7 +14,17 @@ export type PhotoRecord = {
   createdAt: string;
 };
 
-export const albums = new Map<string, AlbumRecord>();
+type GlobalAlbumsStore = {
+  albums?: Map<string, AlbumRecord>;
+};
+
+const globalForAlbums = globalThis as typeof globalThis & GlobalAlbumsStore;
+
+if (!globalForAlbums.albums) {
+  globalForAlbums.albums = new Map<string, AlbumRecord>();
+}
+
+export const albums = globalForAlbums.albums;
 
 export function getAlbumById(albumId: string) {
   return albums.get(albumId) ?? null;

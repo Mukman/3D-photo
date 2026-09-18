@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import QRCode from "qrcode";
 import { albums, createAlbumRecord, type AlbumRecord } from "@/lib/album-store";
 

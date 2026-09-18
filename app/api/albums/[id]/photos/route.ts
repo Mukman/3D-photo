@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { addPhotoToAlbum, albums, type PhotoRecord } from "@/lib/album-store";
 
 export async function POST(

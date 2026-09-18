@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { albums } from "@/lib/album-store";
 
 export async function GET(
