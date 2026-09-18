@@ -38,11 +38,33 @@ export default function ViewAlbum() {
   }, [params.id]);
 
   const handleUnlock = () => {
+    if (!album) return;
     if (pinInput === album.pin) {
       fetchAlbum(pinInput);
       setError("");
     } else {
       setError("Incorrect PIN");
+    }
+  };
+
+  const handleShare = async () => {
+    if (!album) return;
+
+    const shareData = {
+      title: album.title,
+      text: `Check out ${album.title}!`,
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error("Share cancelled or failed", err);
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert("Link copied to clipboard!");
     }
   };
 
@@ -86,7 +108,7 @@ export default function ViewAlbum() {
           Share Album
         </button>
       </div>
-      
+
       <AnimatePresence mode="wait">
         {/* PIN LOCK SCREEN */}
         {album.requiresPin && album.photos.length === 0 ? (
@@ -140,24 +162,3 @@ export default function ViewAlbum() {
     </main>
   );
 }
-
-  const handleShare = async () => {
-    const shareData = {
-      title: album.title,
-      text: `Check out ${album.title}!`,
-      url: window.location.href,
-    };
-
-    // Use native Web Share API (Works perfectly on mobile!)
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        console.error("Share cancelled or failed", err);
-      }
-    } else {
-      // Fallback for desktop: Copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      alert("Link copied to clipboard!");
-    }
-  };
