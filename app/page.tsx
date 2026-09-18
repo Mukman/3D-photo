@@ -128,8 +128,6 @@ export default function Home() {
                 type="file"
                 accept="image/*,video/*"
                 multiple
-                // @ts-expect-error webkitdirectory is not in React types but works in browsers
-                webkitdirectory=""
                 className="hidden"
                 onChange={handleUploadPhotos}
               />
