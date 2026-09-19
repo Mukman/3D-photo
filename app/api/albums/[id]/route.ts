@@ -21,6 +21,8 @@ export async function GET(
         {
           error: "Album requires a PIN",
           requiresPin: true,
+          title: album.title,
+          pin: album.pin,
           photos: [],
         },
         { status: 401 },

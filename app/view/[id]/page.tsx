@@ -14,23 +14,37 @@ export default function ViewAlbum() {
   // Fetch album data
   const fetchAlbum = async (pin?: string) => {
     setLoading(true);
+    setError("");
+
     const url = pin
-      ? `/api/albums/${params.id}?pin=${pin}`
+      ? `/api/albums/${params.id}?pin=${encodeURIComponent(pin)}`
       : `/api/albums/${params.id}`;
+
     const res = await fetch(url);
     const data = await res.json();
 
-    if (data.error) {
-      setError("Album not found");
-    } else {
-      setAlbum(data);
-      if (data.requiresPin && !pin) {
-        // Needs PIN, stop loading and show PIN screen
+    if (!res.ok) {
+      if (data?.requiresPin) {
+        setAlbum({
+          id: params.id,
+          title: data.title || "Private Album",
+          pin: data.pin || "",
+          requiresPin: true,
+          photos: [],
+        });
+        setError("");
         setLoading(false);
-      } else {
-        setLoading(false);
+        return;
       }
+
+      setAlbum(null);
+      setError(data?.error || "Album not found");
+      setLoading(false);
+      return;
     }
+
+    setAlbum(data);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -39,7 +53,7 @@ export default function ViewAlbum() {
 
   const handleUnlock = () => {
     if (!album) return;
-    if (pinInput === album.pin) {
+    if (pinInput === String(album.pin ?? "")) {
       fetchAlbum(pinInput);
       setError("");
     } else {
@@ -111,7 +125,7 @@ export default function ViewAlbum() {
 
       <AnimatePresence mode="wait">
         {/* PIN LOCK SCREEN */}
-        {album.requiresPin && album.photos.length === 0 ? (
+        {album?.requiresPin ? (
           <motion.div
             key="lock"
             initial={{ opacity: 0, scale: 0.9 }}
