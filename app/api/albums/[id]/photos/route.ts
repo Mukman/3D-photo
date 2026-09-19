@@ -1,13 +1,17 @@
 export const runtime = "nodejs";
 
-import { addPhotoToAlbum, albums, type PhotoRecord } from "@/lib/album-store";
+import {
+  addPhotoToAlbum,
+  getAlbumById,
+  type PhotoRecord,
+} from "@/lib/album-store";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const album = albums.get(id);
+  const album = await getAlbumById(id);
 
   if (!album) {
     return Response.json({ error: "Album not found" }, { status: 404 });
@@ -33,7 +37,7 @@ export async function POST(
     createdAt: new Date().toISOString(),
   };
 
-  const saved = addPhotoToAlbum(id, photo);
+  const saved = await addPhotoToAlbum(id, photo);
 
   if (!saved) {
     return Response.json({ error: "Album not found" }, { status: 404 });

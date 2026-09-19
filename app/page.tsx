@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 export default function Home() {
@@ -7,9 +7,24 @@ export default function Home() {
   const [title, setTitle] = useState("");
   const [pin, setPin] = useState("");
   const [albumData, setAlbumData] = useState<any>(null);
+  const [savedAlbums, setSavedAlbums] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const [uploadedPhotos, setUploadedPhotos] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadAlbums = async () => {
+      try {
+        const res = await fetch("/api/albums");
+        const data = await res.json();
+        if (data.albums) setSavedAlbums(data.albums);
+      } catch {
+        setSavedAlbums([]);
+      }
+    };
+
+    loadAlbums();
+  }, []);
 
   // 1. Create Album
   const handleCreateAlbum = async (e: React.FormEvent) => {
@@ -22,9 +37,53 @@ export default function Home() {
     const data = await res.json();
     if (data.album) {
       setAlbumData(data);
+      setUploadedPhotos([]);
+      setSavedAlbums((prev) => [
+        { ...data.album, photos: [] },
+        ...prev.filter((album) => album.id !== data.album.id),
+      ]);
       setStep("upload");
     } else {
       alert("Failed to create album: " + (data.error || "Unknown error"));
+    }
+  };
+
+  const handleDeleteAlbum = async (id: string) => {
+    if (!confirm("Delete this album?")) return;
+
+    const res = await fetch(`/api/albums/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setSavedAlbums((prev) => prev.filter((album) => album.id !== id));
+      if (albumData?.album?.id === id) {
+        setAlbumData(null);
+        setUploadedPhotos([]);
+        setStep("create");
+      }
+    }
+  };
+
+  const handleRenameAlbum = async (id: string, currentTitle: string) => {
+    const nextTitle = window.prompt("Edit album title", currentTitle);
+    if (!nextTitle || !nextTitle.trim()) return;
+
+    const res = await fetch(`/api/albums/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: nextTitle.trim() }),
+    });
+    if (!res.ok) return;
+
+    const updated = await res.json();
+    setSavedAlbums((prev) =>
+      prev.map((album) =>
+        album.id === id ? { ...album, title: updated.album.title } : album,
+      ),
+    );
+    if (albumData?.album?.id === id) {
+      setAlbumData((prev: any) => ({
+        ...prev,
+        album: { ...prev.album, title: updated.album.title },
+      }));
     }
   };
 
@@ -79,36 +138,80 @@ export default function Home() {
       </h1>
 
       {step === "create" && (
-        <motion.form
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          onSubmit={handleCreateAlbum}
-          className="w-full max-w-md bg-white/5 p-8 rounded-2xl backdrop-blur-md mt-10"
-        >
-          <h2 className="text-xl font-bold mb-4">Create New Album</h2>
-          <input
-            type="text"
-            placeholder="Album Title (e.g., Sarah's Wedding)"
-            required
-            className="w-full bg-black/30 border border-gray-700 rounded-lg p-3 mb-4 focus:outline-none focus:border-purple-500"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Optional 4-digit PIN"
-            maxLength={4}
-            className="w-full bg-black/30 border border-gray-700 rounded-lg p-3 mb-6 focus:outline-none focus:border-purple-500"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-          />
-          <button
-            type="submit"
-            className="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-semibold transition-colors"
+        <>
+          <motion.form
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            onSubmit={handleCreateAlbum}
+            className="w-full max-w-md bg-white/5 p-8 rounded-2xl backdrop-blur-md mt-10"
           >
-            Create Album & Get QR
-          </button>
-        </motion.form>
+            <h2 className="text-xl font-bold mb-4">Create New Album</h2>
+            <input
+              type="text"
+              placeholder="Album Title (e.g., Sarah's Wedding)"
+              required
+              className="w-full bg-black/30 border border-gray-700 rounded-lg p-3 mb-4 focus:outline-none focus:border-purple-500"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Optional 4-digit PIN"
+              maxLength={4}
+              className="w-full bg-black/30 border border-gray-700 rounded-lg p-3 mb-6 focus:outline-none focus:border-purple-500"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+            />
+            <button
+              type="submit"
+              className="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Create Album & Get QR
+            </button>
+          </motion.form>
+
+          {savedAlbums.length > 0 && (
+            <div className="w-full max-w-3xl mt-8 bg-white/5 rounded-2xl p-6">
+              <h3 className="text-lg font-bold mb-4">Saved albums</h3>
+              <div className="space-y-3">
+                {savedAlbums.map((album) => (
+                  <div
+                    key={album.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-gray-700 bg-black/20 p-3"
+                  >
+                    <div>
+                      <p className="font-semibold">{album.title}</p>
+                      <p className="text-xs text-gray-400">{album.id}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <a
+                        href={`/view/${album.id}`}
+                        target="_blank"
+                        className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm"
+                      >
+                        Open
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleRenameAlbum(album.id, album.title)}
+                        className="px-3 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAlbum(album.id)}
+                        className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {step === "upload" && albumData && (

@@ -1,7 +1,11 @@
 export const runtime = "nodejs";
 
 import QRCode from "qrcode";
-import { albums, createAlbumRecord, type AlbumRecord } from "@/lib/album-store";
+import {
+  createAlbumRecord,
+  listAlbums,
+  type AlbumRecord,
+} from "@/lib/album-store";
 
 function buildAlbumPayload(album: AlbumRecord) {
   return {
@@ -23,7 +27,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const album = createAlbumRecord(title, pin);
+    const album = await createAlbumRecord(title, pin);
     const requestUrl = new URL(request.url);
     const baseUrl =
       process.env.NEXT_PUBLIC_BASE_URL ||
@@ -48,7 +52,8 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+  const albums = await listAlbums();
   return Response.json({
-    albums: [...albums.values()].map(buildAlbumPayload),
+    albums: albums.map(buildAlbumPayload),
   });
 }

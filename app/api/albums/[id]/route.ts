@@ -1,6 +1,6 @@
 export const runtime = "nodejs";
 
-import { albums } from "@/lib/album-store";
+import { deleteAlbum, getAlbumById, updateAlbum } from "@/lib/album-store";
 
 export async function GET(
   request: Request,
@@ -9,7 +9,7 @@ export async function GET(
   const { id } = await params;
   const url = new URL(request.url);
   const providedPin = url.searchParams.get("pin");
-  const album = albums.get(id);
+  const album = await getAlbumById(id);
 
   if (!album) {
     return Response.json({ error: "Album not found" }, { status: 404 });
@@ -31,4 +31,46 @@ export async function GET(
     requiresPin: Boolean(album.pin),
     photos: album.photos,
   });
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const body = await request.json();
+  const title = typeof body?.title === "string" ? body.title.trim() : undefined;
+  const pin = body?.pin === null ? null : body?.pin;
+
+  if (!title && pin === undefined) {
+    return Response.json(
+      { error: "No album updates provided" },
+      { status: 400 },
+    );
+  }
+
+  const album = await updateAlbum(id, {
+    title: title || undefined,
+    pin: pin !== undefined ? (pin === "" ? null : String(pin)) : undefined,
+  });
+
+  if (!album) {
+    return Response.json({ error: "Album not found" }, { status: 404 });
+  }
+
+  return Response.json({ album });
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const deleted = await deleteAlbum(id);
+
+  if (!deleted) {
+    return Response.json({ error: "Album not found" }, { status: 404 });
+  }
+
+  return Response.json({ ok: true });
 }
