@@ -6,9 +6,15 @@ interface PhotoProps {
   imageUrl: string;
   videoUrl?: string;
   alt: string;
+  onOpen?: () => void;
 }
 
-export default function Photo3D({ imageUrl, videoUrl, alt }: PhotoProps) {
+export default function Photo3D({
+  imageUrl,
+  videoUrl,
+  alt,
+  onOpen,
+}: PhotoProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -58,6 +64,7 @@ export default function Photo3D({ imageUrl, videoUrl, alt }: PhotoProps) {
       onTouchEnd={handleEnd}
       onMouseEnter={() => videoUrl && setIsPlaying(true)}
       onTouchStart={() => videoUrl && setIsPlaying(true)}
+      onClick={onOpen}
       whileTap={{ scale: 0.98 }}
     >
       <img

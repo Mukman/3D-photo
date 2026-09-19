@@ -62,6 +62,14 @@ export default function Home() {
     }
   };
 
+  const handleCreateAnotherAlbum = () => {
+    setAlbumData(null);
+    setUploadedPhotos([]);
+    setTitle("");
+    setPin("");
+    setStep("create");
+  };
+
   const handleRenameAlbum = async (id: string, currentTitle: string) => {
     const nextTitle = window.prompt("Edit album title", currentTitle);
     if (!nextTitle || !nextTitle.trim()) return;
@@ -220,11 +228,17 @@ export default function Home() {
           animate={{ opacity: 1 }}
           className="w-full max-w-4xl grid md:grid-cols-2 gap-10 mt-10"
         >
-          {/* Left: Upload & Preview */}
           <div>
-            <h2 className="text-xl font-bold mb-4">Upload Photos</h2>
-
-            {/* 👇 NOTICE: 'multiple', 'webkitdirectory', and 'directory' added! */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Upload Photos</h2>
+              <button
+                type="button"
+                onClick={handleCreateAnotherAlbum}
+                className="text-sm text-gray-300 hover:text-white underline"
+              >
+                New album
+              </button>
+            </div>
 
             <label className="w-full p-8 border-2 border-dashed border-gray-600 rounded-2xl flex flex-col items-center cursor-pointer hover:border-purple-500 transition-colors mb-6">
               <input
@@ -260,7 +274,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right: QR Code */}
           <div className="flex flex-col items-center bg-white/5 p-8 rounded-2xl backdrop-blur-sm h-fit">
             <h2 className="text-xl font-bold mb-4">Album QR Code</h2>
             <img
@@ -271,20 +284,29 @@ export default function Home() {
             <p className="text-xs text-gray-400 mt-4 break-all text-center">
               {albumData.albumUrl}
             </p>
-            <a
-              href={albumData.qrCode}
-              download={`${albumData.album.title}-QR.png`}
-              className="mt-6 px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-full font-semibold transition-colors"
-            >
-              Download QR
-            </a>
-            <a
-              href={`/view/${albumData.album.id}`}
-              target="_blank"
-              className="mt-4 text-sm text-blue-400 hover:text-blue-300 underline"
-            >
-              Test View Gallery →
-            </a>
+            <div className="flex flex-col gap-3 mt-6 w-full">
+              <a
+                href={albumData.qrCode}
+                download={`${albumData.album.title}-QR.png`}
+                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-full text-center font-semibold transition-colors"
+              >
+                Download QR
+              </a>
+              <a
+                href={`/view/${albumData.album.id}`}
+                target="_blank"
+                className="px-6 py-2 border border-blue-500 text-blue-300 hover:bg-blue-500/10 rounded-full text-center font-semibold transition-colors"
+              >
+                Open gallery
+              </a>
+              <button
+                type="button"
+                onClick={handleCreateAnotherAlbum}
+                className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full font-semibold transition-colors"
+              >
+                Back to create album
+              </button>
+            </div>
           </div>
         </motion.div>
       )}
