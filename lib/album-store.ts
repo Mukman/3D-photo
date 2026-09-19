@@ -1,5 +1,4 @@
-import { promises as fs } from "fs";
-import path from "path";
+import { prisma } from "@/lib/prisma";
 
 export type AlbumRecord = {
   id: string;
@@ -17,84 +16,115 @@ export type PhotoRecord = {
   createdAt: string;
 };
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "albums.json");
-
-async function ensureFile() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  try {
-    await fs.access(DATA_FILE);
-  } catch {
-    await fs.writeFile(DATA_FILE, JSON.stringify({}), "utf8");
-  }
+function serializePhoto(photo: {
+  id: string;
+  imageUrl: string;
+  videoUrl: string | null;
+  albumId: string;
+  createdAt: Date;
+}): PhotoRecord {
+  return {
+    id: photo.id,
+    imageUrl: photo.imageUrl,
+    videoUrl: photo.videoUrl,
+    albumId: photo.albumId,
+    createdAt: photo.createdAt.toISOString(),
+  };
 }
 
-async function readAlbumMap(): Promise<Map<string, AlbumRecord>> {
-  await ensureFile();
-  const raw = await fs.readFile(DATA_FILE, "utf8");
-  const parsed = JSON.parse(raw || "{}") as Record<string, AlbumRecord>;
-  return new Map(Object.entries(parsed));
-}
-
-async function writeAlbumMap(map: Map<string, AlbumRecord>) {
-  await ensureFile();
-  const payload = Object.fromEntries(map.entries());
-  await fs.writeFile(DATA_FILE, JSON.stringify(payload, null, 2), "utf8");
+function serializeAlbum(album: {
+  id: string;
+  title: string;
+  pin: string | null;
+  createdAt: Date;
+  photos: Array<{
+    id: string;
+    imageUrl: string;
+    videoUrl: string | null;
+    albumId: string;
+    createdAt: Date;
+  }>;
+}): AlbumRecord {
+  return {
+    id: album.id,
+    title: album.title,
+    pin: album.pin,
+    createdAt: album.createdAt.toISOString(),
+    photos: album.photos.map(serializePhoto),
+  };
 }
 
 export async function listAlbums() {
-  const map = await readAlbumMap();
-  return [...map.values()];
+  const albums = await prisma.album.findMany({
+    include: { photos: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return albums.map(serializeAlbum);
 }
 
 export async function getAlbumById(albumId: string) {
-  const map = await readAlbumMap();
-  return map.get(albumId) ?? null;
+  const album = await prisma.album.findUnique({
+    where: { id: albumId },
+    include: { photos: { orderBy: { createdAt: "asc" } } },
+  });
+
+  if (!album) return null;
+  return serializeAlbum(album);
 }
 
 export async function createAlbumRecord(title: string, pin: string | null) {
-  const map = await readAlbumMap();
-  const album: AlbumRecord = {
-    id: crypto.randomUUID(),
-    title,
-    pin,
-    createdAt: new Date().toISOString(),
-    photos: [],
-  };
+  const album = await prisma.album.create({
+    data: {
+      title,
+      pin,
+    },
+    include: { photos: true },
+  });
 
-  map.set(album.id, album);
-  await writeAlbumMap(map);
-  return album;
+  return serializeAlbum(album);
 }
 
 export async function addPhotoToAlbum(albumId: string, photo: PhotoRecord) {
-  const map = await readAlbumMap();
-  const album = map.get(albumId);
-  if (!album) return null;
+  const existingAlbum = await prisma.album.findUnique({
+    where: { id: albumId },
+  });
+  if (!existingAlbum) return null;
 
-  album.photos.push(photo);
-  await writeAlbumMap(map);
-  return photo;
+  const saved = await prisma.photo.create({
+    data: {
+      albumId,
+      imageUrl: photo.imageUrl,
+      videoUrl: photo.videoUrl,
+    },
+  });
+
+  return serializePhoto(saved);
 }
 
 export async function updateAlbum(
   albumId: string,
   updates: Partial<Pick<AlbumRecord, "title" | "pin">>,
 ) {
-  const map = await readAlbumMap();
-  const album = map.get(albumId);
+  const album = await prisma.album.findUnique({ where: { id: albumId } });
   if (!album) return null;
 
-  if (updates.title !== undefined) album.title = updates.title;
-  if (updates.pin !== undefined) album.pin = updates.pin;
+  const updated = await prisma.album.update({
+    where: { id: albumId },
+    data: {
+      title: updates.title ?? undefined,
+      pin: updates.pin ?? undefined,
+    },
+    include: { photos: true },
+  });
 
-  await writeAlbumMap(map);
-  return album;
+  return serializeAlbum(updated);
 }
 
 export async function deleteAlbum(albumId: string) {
-  const map = await readAlbumMap();
-  const existed = map.delete(albumId);
-  await writeAlbumMap(map);
-  return existed;
+  const album = await prisma.album.findUnique({ where: { id: albumId } });
+  if (!album) return false;
+
+  await prisma.album.delete({ where: { id: albumId } });
+  return true;
 }

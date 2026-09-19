@@ -46,14 +46,23 @@ export async function POST(request: Request) {
       albumUrl,
     });
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to create album";
     console.error("Create album error:", error);
-    return Response.json({ error: "Failed to create album" }, { status: 500 });
+    return Response.json({ error: message }, { status: 500 });
   }
 }
 
 export async function GET() {
-  const albums = await listAlbums();
-  return Response.json({
-    albums: albums.map(buildAlbumPayload),
-  });
+  try {
+    const albums = await listAlbums();
+    return Response.json({
+      albums: albums.map(buildAlbumPayload),
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load albums";
+    console.error("List albums error:", error);
+    return Response.json({ error: message }, { status: 500 });
+  }
 }
