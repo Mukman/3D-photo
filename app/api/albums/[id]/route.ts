@@ -31,7 +31,7 @@ export async function GET(
 
     return Response.json({
       ...album,
-      requiresPin: Boolean(album.pin),
+      requiresPin: false,
       photos: album.photos,
     });
   } catch (error) {
