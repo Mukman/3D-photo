@@ -3,30 +3,15 @@ export const runtime = "nodejs";
 import { deleteAlbum, getAlbumById, updateAlbum } from "@/lib/album-store";
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const url = new URL(request.url);
-    const providedPin = url.searchParams.get("pin");
     const album = await getAlbumById(id);
 
     if (!album) {
       return Response.json({ error: "Album not found" }, { status: 404 });
-    }
-
-    if (album.pin && (!providedPin || providedPin !== album.pin)) {
-      return Response.json(
-        {
-          error: "Album requires a PIN",
-          requiresPin: true,
-          title: album.title,
-          pin: album.pin,
-          photos: [],
-        },
-        { status: 401 },
-      );
     }
 
     return Response.json({

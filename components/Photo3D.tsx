@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
 
 interface PhotoProps {
@@ -10,54 +10,23 @@ interface PhotoProps {
 
 export default function Photo3D({ imageUrl, videoUrl, alt }: PhotoProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [gyroEnabled, setGyroEnabled] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
-  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [15, -15]), {
-    stiffness: 150,
-    damping: 15,
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [18, -18]), {
+    stiffness: 180,
+    damping: 18,
+    mass: 0.7,
   });
-  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-15, 15]), {
-    stiffness: 150,
-    damping: 15,
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-18, 18]), {
+    stiffness: 180,
+    damping: 18,
+    mass: 0.7,
   });
-
-  // 1. Gyroscope Support for Mobile
-  useEffect(() => {
-    const handleOrientation = (event: DeviceOrientationEvent) => {
-      if (event.gamma !== null && event.beta !== null) {
-        // gamma is left/right tilt, beta is front/back tilt
-        x.set(event.gamma / 90);
-        y.set((event.beta - 45) / 90); // 45 is a natural phone holding angle
-      }
-    };
-
-    if (gyroEnabled) {
-      window.addEventListener("deviceorientation", handleOrientation);
-    }
-    return () =>
-      window.removeEventListener("deviceorientation", handleOrientation);
-  }, [gyroEnabled, x, y]);
-
-  // iOS 13+ requires explicit permission to use the gyroscope
-  const enableGyro = async () => {
-    if (
-      typeof (DeviceOrientationEvent as any).requestPermission === "function"
-    ) {
-      const permission = await (
-        DeviceOrientationEvent as any
-      ).requestPermission();
-      if (permission === "granted") setGyroEnabled(true);
-    } else {
-      setGyroEnabled(true);
-    }
-  };
 
   const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (gyroEnabled) return; // Disable mouse/touch if gyro is active
     if (!ref.current) return;
     const rect = ref.current.getBoundingClientRect();
     const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
@@ -67,17 +36,22 @@ export default function Photo3D({ imageUrl, videoUrl, alt }: PhotoProps) {
   };
 
   const handleEnd = () => {
-    if (gyroEnabled) return;
     x.set(0);
     y.set(0);
-    setTimeout(() => setIsPlaying(false), 500);
+    setTimeout(() => setIsPlaying(false), 400);
   };
 
   return (
     <motion.div
       ref={ref}
       className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
-      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+      style={{
+        rotateX,
+        rotateY,
+        transformStyle: "preserve-3d",
+        transformPerspective: 1200,
+        transition: "transform 0.2s ease-out",
+      }}
       onMouseMove={handleMove}
       onMouseLeave={handleEnd}
       onTouchMove={handleMove}
@@ -114,19 +88,6 @@ export default function Photo3D({ imageUrl, videoUrl, alt }: PhotoProps) {
           ></div>
           LIVE
         </div>
-      )}
-
-      {/* Gyroscope Enable Button (Shows on mobile if not enabled) */}
-      {!gyroEnabled && (
-        <button
-          onClick={enableGyro}
-          className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1 hover:bg-black/80 transition-colors"
-        >
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12z" />
-          </svg>
-          Enable 3D Tilt
-        </button>
       )}
     </motion.div>
   );

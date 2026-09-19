@@ -7,36 +7,17 @@ import { useParams } from "next/navigation";
 export default function ViewAlbum() {
   const params = useParams();
   const [album, setAlbum] = useState<any>(null);
-  const [pinInput, setPinInput] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Fetch album data
-  const fetchAlbum = async (pin?: string) => {
+  const fetchAlbum = async () => {
     setLoading(true);
     setError("");
 
-    const url = pin
-      ? `/api/albums/${params.id}?pin=${encodeURIComponent(pin)}`
-      : `/api/albums/${params.id}`;
-
-    const res = await fetch(url);
+    const res = await fetch(`/api/albums/${params.id}`);
     const data = await res.json();
 
     if (!res.ok) {
-      if (data?.requiresPin) {
-        setAlbum({
-          id: params.id,
-          title: data.title || "Private Album",
-          pin: data.pin || "",
-          requiresPin: true,
-          photos: [],
-        });
-        setError("");
-        setLoading(false);
-        return;
-      }
-
       setAlbum(null);
       setError(data?.error || "Album not found");
       setLoading(false);
@@ -50,16 +31,6 @@ export default function ViewAlbum() {
   useEffect(() => {
     fetchAlbum();
   }, [params.id]);
-
-  const handleUnlock = () => {
-    if (!album) return;
-    if (pinInput === String(album.pin ?? "")) {
-      fetchAlbum(pinInput);
-      setError("");
-    } else {
-      setError("Incorrect PIN");
-    }
-  };
 
   const handleShare = async () => {
     if (!album) return;
@@ -124,54 +95,23 @@ export default function ViewAlbum() {
       </div>
 
       <AnimatePresence mode="wait">
-        {/* PIN LOCK SCREEN */}
-        {album?.requiresPin ? (
-          <motion.div
-            key="lock"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="max-w-sm mx-auto mt-20 bg-white/5 p-8 rounded-2xl backdrop-blur-md text-center"
-          >
-            <div className="text-5xl mb-4">🔒</div>
-            <h2 className="text-xl font-bold mb-2">This album is private</h2>
-            <p className="text-gray-400 text-sm mb-6">
-              Enter the 4-digit PIN to view the photos.
-            </p>
-            <input
-              type="password"
-              maxLength={4}
-              className="w-full bg-black/30 border border-gray-700 rounded-lg p-3 text-center text-2xl tracking-widest focus:outline-none focus:border-purple-500"
-              value={pinInput}
-              onChange={(e) => setPinInput(e.target.value)}
-              placeholder="••••"
+        <motion.div
+          key="gallery"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-6xl mx-auto perspective-1000"
+        >
+          {album.photos.map((photo: any) => (
+            <Photo3D
+              key={photo.id}
+              imageUrl={photo.imageUrl}
+              videoUrl={photo.videoUrl}
+              alt="Album photo"
             />
-            {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
-            <button
-              onClick={handleUnlock}
-              className="w-full mt-4 bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-semibold transition-colors"
-            >
-              Unlock Album
-            </button>
-          </motion.div>
-        ) : (
-          /* 3D PHOTO GALLERY */
-          <motion.div
-            key="gallery"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-6xl mx-auto perspective-1000"
-          >
-            {album.photos.map((photo: any) => (
-              <Photo3D
-                key={photo.id}
-                imageUrl={photo.imageUrl}
-                videoUrl={photo.videoUrl}
-                alt="Album photo"
-              />
-            ))}
-          </motion.div>
-        )}
+          ))}
+        </motion.div>
       </AnimatePresence>
     </main>
   );
